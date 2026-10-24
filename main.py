@@ -13,30 +13,38 @@ class JarvisSystem:
         self.cerebro = Cerebro()
         self.oidos = Oidos()
         self.voz = Voz()
+        self._bloqueo_despertar = threading.Lock()
         print("[Sistema]: Todos los subsistemas en línea.")
 
     def despertar(self):
         """Rutina que se ejecuta al presionar la combinacion de teclas"""
-        print("\n[Escuchando...]")
-        
-        # 1. Capturamos tu voz y la convertimos a texto
-        texto_usuario = self.oidos.grabar_y_transcribir()
-        
-        if texto_usuario:
-            print(f"[Tú]: {texto_usuario}")
-            
-            # 2. El cerebro procesa el texto usando el contexto de tu vida
-            self.voz.iniciar_stream()
-            respuesta_ia = self.cerebro.generar_respuesta(
-                texto_usuario,
-                al_recibir=self.voz.agregar_fragmento,
-            )
-            print(f"[J.A.R.V.I.S.]: {respuesta_ia}")
+        if not self._bloqueo_despertar.acquire(blocking=False):
+            print("[Sistema]: Ya estoy atendiendo otra solicitud.")
+            return
 
-            # La voz termina de reproducir los fragmentos recibidos.
-            self.voz.finalizar_stream()
-            
-        print("\n[Sistema]: En espera. Presiona [Ctrl + Alt + J] para hablar.")
+        try:
+            print("\n[Escuchando...]")
+
+            # 1. Capturamos tu voz y la convertimos a texto
+            texto_usuario = self.oidos.grabar_y_transcribir()
+
+            if texto_usuario:
+                print(f"[Tú]: {texto_usuario}")
+
+                # 2. El cerebro procesa el texto usando el contexto de tu vida
+                self.voz.iniciar_stream()
+                respuesta_ia = self.cerebro.generar_respuesta(
+                    texto_usuario,
+                    al_recibir=self.voz.agregar_fragmento,
+                )
+                print(f"[J.A.R.V.I.S.]: {respuesta_ia}")
+
+                # La voz termina de reproducir los fragmentos recibidos.
+                self.voz.finalizar_stream()
+
+            print("\n[Sistema]: En espera. Presiona [Ctrl + Alt + J] para hablar.")
+        finally:
+            self._bloqueo_despertar.release()
 
     def iniciar_demonio(self):
         """Mantiene el sistema corriendo de forma silenciosa en segundo plano"""

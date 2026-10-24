@@ -4,3 +4,5 @@ keyboard
 python-dotenv
 SpeechRecognition
 ollama
+pyttsx3
+gTTS
